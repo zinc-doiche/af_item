@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+
+# Local data and generated plugin assets
+data/
+plugins/
+
+# Next.js / React build output
+.next/
+out/
+build/
+dist/
+
+# Test and coverage output
+coverage/
+playwright-report/
+test-results/
+.test-tmp*/
+
+# Caches
+.turbo/
+.vercel/
+.cache/
+*.tsbuildinfo
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+*.log
+*.err.log
