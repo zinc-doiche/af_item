@@ -1,64 +1,64 @@
 import type { CSSProperties, ReactNode } from "react";
+import { MiniMessage, TextDecoration, type Component, type Style } from "minimessage-js/dist/minimessage.esm.js";
 
-const COLORS: Record<string, string> = {
-  black: "#000000",
-  dark_blue: "#0000aa",
-  dark_green: "#00aa00",
-  dark_aqua: "#00aaaa",
-  dark_red: "#aa0000",
-  dark_purple: "#aa00aa",
-  gold: "#ffaa00",
-  gray: "#aaaaaa",
-  grey: "#aaaaaa",
-  dark_gray: "#555555",
-  dark_grey: "#555555",
-  blue: "#5555ff",
-  green: "#55ff55",
-  aqua: "#55ffff",
-  red: "#ff5555",
-  light_purple: "#ff55ff",
-  yellow: "#ffff55",
-  white: "#ffffff",
-  brown: "#aa5500"
-};
+const miniMessage = MiniMessage.miniMessage();
 
-function normalizeColor(token: string) {
-  const value = token.toLowerCase().replace(/^minecraft:/, "");
-  if (COLORS[value]) return COLORS[value];
-  if (/^#[0-9a-f]{6}$/i.test(value)) return value;
-  return null;
+type DecorationState = "not_set" | "false" | "true";
+
+function decorationEnabled(style: Style, decoration: TextDecoration) {
+  return style.decoration(decoration) === ("true" satisfies DecorationState);
 }
 
-export function renderMiniMessage(input: unknown, fallbackColor = "#ffffff"): ReactNode {
-  const text = typeof input === "string" ? input : JSON.stringify(input ?? "");
-  const parts = text.split(/(<[^>]+>)/g).filter(Boolean);
-  const nodes: ReactNode[] = [];
-  const style: CSSProperties = { color: fallbackColor };
+function componentStyle(component: Component, inherited: CSSProperties, fallbackColor: string): CSSProperties {
+  const style = component.style();
+  const next: CSSProperties = { ...inherited };
+  next.color = component.color()?.asHexString() || next.color || fallbackColor;
 
-  for (const part of parts) {
-    const tag = part.match(/^<([^>]+)>$/)?.[1];
-    if (tag) {
-      const clean = tag.replace("/", "").toLowerCase();
-      const color = normalizeColor(clean);
-      if (color) style.color = color;
-      if (clean === "bold" || clean === "b") style.fontWeight = 700;
-      if (clean === "italic" || clean === "i") style.fontStyle = "italic";
-      if (clean === "underlined" || clean === "u") style.textDecoration = "underline";
-      if (clean === "reset") {
-        style.color = fallbackColor;
-        delete style.fontWeight;
-        delete style.fontStyle;
-        delete style.textDecoration;
-      }
-      continue;
-    }
+  if (decorationEnabled(style, TextDecoration.BOLD)) next.fontWeight = 700;
+  if (decorationEnabled(style, TextDecoration.ITALIC)) next.fontStyle = "italic";
 
+  const decorations: string[] = [];
+  if (decorationEnabled(style, TextDecoration.UNDERLINED)) decorations.push("underline");
+  if (decorationEnabled(style, TextDecoration.STRIKETHROUGH)) decorations.push("line-through");
+  if (decorations.length) next.textDecoration = decorations.join(" ");
+
+  return next;
+}
+
+function renderComponent(component: Component, inherited: CSSProperties, fallbackColor: string, nodes: ReactNode[]) {
+  const style = componentStyle(component, inherited, fallbackColor);
+  const content = component.type === "text" ? component.content() : "";
+
+  if (content) {
     nodes.push(
-      <span key={`${part}-${nodes.length}`} style={{ ...style }}>
-        {part}
+      <span key={`${content}-${nodes.length}`} style={style}>
+        {content}
       </span>
     );
   }
 
-  return nodes.length ? nodes : text;
+  for (const child of component.children()) {
+    renderComponent(child, style, fallbackColor, nodes);
+  }
+}
+
+function fallbackText(input: string, fallbackColor: string) {
+  return [
+    <span key="fallback" style={{ color: fallbackColor }}>
+      {input}
+    </span>
+  ];
+}
+
+export function renderMiniMessage(input: unknown, fallbackColor = "#ffffff"): ReactNode {
+  const text = typeof input === "string" ? input : JSON.stringify(input ?? "");
+
+  try {
+    const component = miniMessage.deserialize(text);
+    const nodes: ReactNode[] = [];
+    renderComponent(component, { color: fallbackColor }, fallbackColor, nodes);
+    return nodes.length ? nodes : fallbackText(text, fallbackColor);
+  } catch {
+    return fallbackText(text, fallbackColor);
+  }
 }

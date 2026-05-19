@@ -76,7 +76,7 @@ export function CodeEditor({
           color: "var(--text)"
         },
         ".cm-scroller": {
-          fontFamily: "var(--font-code)",
+          fontFamily: '"AFCode", Consolas, monospace',
           fontSize: "12px",
           lineHeight: "1.25rem"
         },

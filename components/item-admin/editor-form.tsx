@@ -5,7 +5,7 @@ import { Trash2 } from "lucide-react";
 import { DEFAULT_COMPONENT_VALUES, ITEM_COMPONENTS } from "@/lib/shared/item-components";
 import type { ItemRecord, JsonValue } from "@/lib/server/types";
 import { CodeEditor } from "./code-editor";
-import { clone } from "./helpers";
+import { clone, formatComponentYaml, parseComponentYaml, parseLoreText } from "./helpers";
 
 type EditorFormProps = {
   itemKey: string;
@@ -13,10 +13,6 @@ type EditorFormProps = {
   onKeyChange: (key: string) => void;
   onItemChange: (item: ItemRecord) => void;
 };
-
-function stringify(value: unknown) {
-  return JSON.stringify(value ?? {}, null, 2);
-}
 
 const editorLabelClass = "text-base font-semibold";
 const iconButtonClass =
@@ -32,7 +28,7 @@ export function EditorForm({ itemKey, item, onKeyChange, onItemChange }: EditorF
 
   function updateComponent(key: string, raw: string) {
     try {
-      const parsed = JSON.parse(raw) as JsonValue;
+      const parsed = parseComponentYaml(raw) as JsonValue;
       onItemChange({ ...item, components: { ...components, [key]: parsed } });
     } catch {
       return;
@@ -58,15 +54,29 @@ export function EditorForm({ itemKey, item, onKeyChange, onItemChange }: EditorF
       <div className="grid gap-4 md:grid-cols-2">
         <label className="space-y-2">
           <span className={editorLabelClass}>아이템 키</span>
-          <input value={itemKey} onChange={(event) => onKeyChange(event.target.value)} spellCheck={false} />
+          <input
+            className="font-code"
+            value={itemKey}
+            onChange={(event) => onKeyChange(event.target.value)}
+            spellCheck={false}
+          />
         </label>
         <label className="space-y-2">
           <span className={editorLabelClass}>Minecraft ID</span>
-          <input value={item.id} onChange={(event) => update({ id: event.target.value })} spellCheck={false} />
+          <input
+            className="font-code"
+            value={item.id}
+            onChange={(event) => update({ id: event.target.value })}
+            spellCheck={false}
+          />
         </label>
         <label className="space-y-2 md:col-span-2">
           <span className={editorLabelClass}>이름</span>
-          <input value={item.display_name || ""} onChange={(event) => update({ display_name: event.target.value })} />
+          <input
+            className="font-code"
+            value={item.display_name || ""}
+            onChange={(event) => update({ display_name: event.target.value })}
+          />
         </label>
       </div>
 
@@ -75,7 +85,7 @@ export function EditorForm({ itemKey, item, onKeyChange, onItemChange }: EditorF
         <CodeEditor
           language="text"
           value={(item.lore || []).map((line) => (typeof line === "string" ? line : JSON.stringify(line))).join("\n")}
-          onChange={(value) => update({ lore: value.split("\n") })}
+          onChange={(value) => update({ lore: parseLoreText(value) })}
           minRows={4}
           maxRows={14}
         />
@@ -84,7 +94,7 @@ export function EditorForm({ itemKey, item, onKeyChange, onItemChange }: EditorF
       <div className="space-y-3">
         <div className="flex items-center justify-between gap-3">
           <h3 className={editorLabelClass}>Components</h3>
-          <select className="max-w-[260px]" value="" onChange={(event) => addComponent(event.target.value)}>
+          <select className="font-code max-w-[260px]" value="" onChange={(event) => addComponent(event.target.value)}>
             <option value="">컴포넌트 추가</option>
             {availableComponents.map((key) => (
               <option key={key} value={key}>
@@ -110,9 +120,8 @@ export function EditorForm({ itemKey, item, onKeyChange, onItemChange }: EditorF
               </button>
               <CodeEditor
                 key={key}
-                language="json"
-                completionKind="minecraft-components"
-                defaultValue={stringify(value)}
+                language="text"
+                value={formatComponentYaml(value)}
                 onBlur={(raw) => updateComponent(key, raw)}
                 minRows={4}
                 maxRows={18}

@@ -32,6 +32,16 @@ export function validateItems(data: unknown) {
   return itemsSchema.safeParse(data);
 }
 
+export function omitEmptyItemFields(items: ItemsMap) {
+  return Object.fromEntries(
+    Object.entries(items).map(([key, item]) => {
+      const next = { ...item };
+      if (next.components && Object.keys(next.components).length === 0) delete next.components;
+      return [key, next];
+    })
+  ) as ItemsMap;
+}
+
 export async function ensureItemsFile(config: ProjectConfig = projectConfig) {
   await fs.mkdir(config.itemsDir, { recursive: true });
   try {

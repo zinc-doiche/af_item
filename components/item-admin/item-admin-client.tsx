@@ -7,7 +7,16 @@ import { apiRequest } from "@/lib/client/api";
 import type { ItemsMap, ItemsPayload, Thumbnail } from "@/lib/shared/types";
 import { DirtyBar } from "./dirty-bar";
 import { EditorForm } from "./editor-form";
-import { clone, fileDisplayName, modelDataLabel, nextAvailableKey, normalizeItem } from "./helpers";
+import {
+  clone,
+  createDefaultItem,
+  fileDisplayName,
+  itemRecordsEqual,
+  modelDataLabel,
+  nextAvailableKey,
+  normalizeItem,
+  resolvePayloadSelection
+} from "./helpers";
 import { PreviewPanel } from "./preview-panel";
 import { Sidebar } from "./sidebar";
 
@@ -44,7 +53,7 @@ export function ItemAdminClient() {
     setItems(nextItems);
     setItemSources(nextSources);
     setThumbnails(payload.thumbnails || {});
-    const nextKey = selectedKey && nextItems[selectedKey] ? selectedKey : Object.keys(nextItems)[0] || "";
+    const nextKey = resolvePayloadSelection(selectedKey, nextItems);
     setSelectedKey(nextKey);
     setDraftKey(nextKey);
   }
@@ -100,6 +109,7 @@ export function ItemAdminClient() {
 
   function updateSelectedItem(nextItem: NonNullable<typeof selectedItem>) {
     if (!selectedKey) return;
+    if (selectedItem && itemRecordsEqual(selectedItem, nextItem)) return;
     setItems((current) => ({ ...current, [selectedKey]: nextItem }));
     setDirty(true);
   }
@@ -154,12 +164,7 @@ export function ItemAdminClient() {
     const key = nextAvailableKey(items, `${fileDisplayName(filePath)}_item`);
     setItems((current) => ({
       ...current,
-      [key]: {
-        id: "minecraft:paper",
-        display_name: "새 아이템",
-        lore: [""],
-        components: { custom_data: {} }
-      }
+      [key]: createDefaultItem()
     }));
     setItemSources((current) => ({ ...current, [key]: filePath }));
     setThumbnails((current) => ({

@@ -20,7 +20,7 @@ type SidebarProps = {
 };
 
 const iconButtonClass =
-  "inline-flex h-10 w-10 items-center justify-center rounded-md border border-[var(--line)] text-[var(--text)] transition hover:bg-white/[0.06]";
+  "inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-[var(--line)] text-[var(--text)] transition hover:bg-white/[0.06]";
 
 export function Sidebar({
   files,
@@ -81,7 +81,7 @@ export function Sidebar({
                   <span className="text-xs text-[var(--muted)]">{entries.length} items</span>
                 </span>
                 <button
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-[var(--line)]"
+                  className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-[var(--line)]"
                   title={`${fileDisplayName(filePath)}에 아이템 추가`}
                   onClick={(event) => {
                     event.preventDefault();

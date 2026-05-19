@@ -1,7 +1,47 @@
+import YAML from "yaml";
+
 import type { ItemRecord, ItemsMap } from "@/lib/shared/types";
 
 export function clone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
+}
+
+export function createDefaultItem(): ItemRecord {
+  return {
+    id: "minecraft:paper",
+    display_name: "새 아이템",
+    lore: [],
+    components: {}
+  };
+}
+
+export function itemRecordsEqual(left: ItemRecord, right: ItemRecord) {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
+export function formatComponentYaml(value: unknown) {
+  if (
+    value &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    Object.keys(value as Record<string, unknown>).length === 0
+  ) {
+    return "";
+  }
+
+  return YAML.stringify(value ?? {}, { lineWidth: 0 }).trimEnd();
+}
+
+export function parseComponentYaml(value: string) {
+  return (value.trim() ? YAML.parse(value) : {}) as unknown;
+}
+
+export function parseLoreText(value: string) {
+  return value ? value.split("\n") : [];
+}
+
+export function resolvePayloadSelection(currentKey: string, nextItems: ItemsMap) {
+  return currentKey && nextItems[currentKey] ? currentKey : "";
 }
 
 export function baseName(filePath: string) {

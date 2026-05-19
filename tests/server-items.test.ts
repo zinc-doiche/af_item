@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import {
   createItemsFile,
+  ensureItemsFile,
   readItems,
   validateItems,
   writeItems
@@ -49,6 +50,74 @@ describe("item validation", () => {
 describe("items storage", () => {
   beforeEach(resetTmp);
 
+  it("creates and loads the default yaml file when no item files exist", async () => {
+    const appConfig = config();
+
+    const snapshot = await readItems(appConfig);
+
+    expect(snapshot.files).toEqual([appConfig.defaultItemsFile]);
+    expect(snapshot.items).toEqual({});
+    await expect(fs.readFile(appConfig.defaultItemsFile, "utf8")).resolves.toBe("{}\n");
+  });
+
+  it("loads item maps from existing yaml files and tracks each item source", async () => {
+    const appConfig = config();
+    await ensureItemsFile(appConfig);
+    const weaponsFile = path.join(appConfig.itemsDir, "weapons.yml");
+    await fs.writeFile(
+      weaponsFile,
+      [
+        "bronze_sword:",
+        "  id: minecraft:iron_sword",
+        "  display_name: Bronze Sword",
+        "  lore:",
+        "    - Forged for tests",
+        "  components:",
+        "    custom_data:",
+        "      tier: bronze"
+      ].join("\n"),
+      "utf8"
+    );
+
+    const snapshot = await readItems(appConfig);
+
+    expect(snapshot.files).toEqual([appConfig.defaultItemsFile, weaponsFile]);
+    expect(snapshot.items.bronze_sword).toMatchObject({
+      id: "minecraft:iron_sword",
+      display_name: "Bronze Sword",
+      lore: ["Forged for tests"],
+      components: { custom_data: { tier: "bronze" } }
+    });
+    expect(snapshot.itemSources.bronze_sword).toBe(weaponsFile);
+    expect(snapshot.fileData[weaponsFile].bronze_sword.id).toBe("minecraft:iron_sword");
+  });
+
+  it("loads custom data and custom model data from one item component map", async () => {
+    const appConfig = config();
+    await fs.mkdir(appConfig.itemsDir, { recursive: true });
+    await fs.writeFile(
+      appConfig.defaultItemsFile,
+      [
+        "crystal_red_diamond:",
+        "  id: minecraft:paper",
+        "  components:",
+        "    custom_model_data:",
+        "      floats:",
+        "        - 5000",
+        "    custom_data:",
+        "      merchant: ORE_SELL_PRICE_INCREASE_PERCENT"
+      ].join("\n"),
+      "utf8"
+    );
+
+    const snapshot = await readItems(appConfig);
+
+    expect(snapshot.items.crystal_red_diamond.components).toEqual({
+      custom_model_data: { floats: [5000] },
+      custom_data: { merchant: "ORE_SELL_PRICE_INCREASE_PERCENT" }
+    });
+  });
+
   it("creates only safe yaml file names inside the configured items directory", async () => {
     const appConfig = config();
 
@@ -93,6 +162,45 @@ describe("items storage", () => {
 
     expect(sources.paper).toBe(appConfig.defaultItemsFile);
     await expect(fs.readFile(appConfig.defaultItemsFile, "utf8")).resolves.toContain("paper:");
+  });
+
+  it("clears items from yaml files that no longer own any saved item", async () => {
+    const appConfig = config();
+    const firstFile = await createItemsFile("first", appConfig);
+    const secondFile = await createItemsFile("second", appConfig);
+
+    await writeItems(
+      {
+        apple: { id: "minecraft:apple" },
+        paper: { id: "minecraft:paper" }
+      },
+      { apple: firstFile, paper: secondFile },
+      appConfig
+    );
+    await writeItems({ paper: { id: "minecraft:paper" } }, { paper: secondFile }, appConfig);
+
+    const firstContent = await fs.readFile(firstFile, "utf8");
+    const secondContent = await fs.readFile(secondFile, "utf8");
+    const snapshot = await readItems(appConfig);
+
+    expect(firstContent).toBe("{}\n");
+    expect(secondContent).toContain("paper:");
+    expect(snapshot.items.apple).toBeUndefined();
+    expect(snapshot.items.paper.id).toBe("minecraft:paper");
+  });
+
+  it("saves items to new safe yaml source paths inside the configured items directory", async () => {
+    const appConfig = config();
+    const newSource = path.join(appConfig.itemsDir, "generated.yml");
+
+    const sources = await writeItems(
+      { generated_item: { id: "minecraft:paper" } },
+      { generated_item: newSource },
+      appConfig
+    );
+
+    expect(sources.generated_item).toBe(newSource);
+    await expect(fs.readFile(newSource, "utf8")).resolves.toContain("generated_item:");
   });
 });
 

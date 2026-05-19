@@ -34,22 +34,38 @@ describe("item admin UI structure", () => {
     expect(source).toContain('import { CodeEditor } from "./code-editor";');
     expect(source).not.toContain("function LineNumberedTextarea");
     expect(source).toContain('language="text"');
-    expect(source).toContain('language="json"');
-    expect(source).toContain('completionKind="minecraft-components"');
+    expect(source).not.toContain('language="json"');
+    expect(source).toContain("formatComponentYaml(value)");
+    expect(source).toContain("parseComponentYaml(raw)");
+    expect(source).toContain("value={formatComponentYaml(value)}");
+    expect(source).not.toContain("defaultValue={stringify(value)}");
+    expect(source).not.toContain('completionKind="minecraft-components"');
     expect(source).not.toContain("JSON 데이터");
     expect(editorSource).toContain('".cm-cursor"');
     expect(editorSource).toContain('borderLeft: "3px solid #ffffff"');
     expect(editorSource).toContain('caretColor: "#ffffff"');
   });
 
+  it("uses the D2Coding font for editable item fields", () => {
+    const source = read("components/item-admin/editor-form.tsx");
+    const editorSource = read("components/item-admin/code-editor.tsx");
+    const cssSource = read("app/globals.css");
+
+    expect(source.match(/className="font-code"/g)).toHaveLength(3);
+    expect(source).toContain('className="font-code max-w-[260px]"');
+    expect(editorSource).toContain('fontFamily: \'"AFCode", Consolas, monospace\'');
+    expect(cssSource).not.toContain("input,\ntextarea,\nselect,\npre,\n.font-code");
+  });
+
   it("uses a shared square icon button style for toolbar actions", () => {
     const sidebarSource = read("components/item-admin/sidebar.tsx");
     const editorSource = read("components/item-admin/editor-form.tsx");
 
-    expect(sidebarSource).toContain("inline-flex h-10 w-10 items-center justify-center");
+    expect(sidebarSource).toContain("inline-flex h-10 w-10 shrink-0 items-center justify-center");
     expect(sidebarSource.match(/className=\{iconButtonClass\}/g)).toHaveLength(2);
     expect(sidebarSource).toContain("<RefreshCw size={18}");
     expect(sidebarSource).toContain("<FilePlus size={18}");
+    expect(sidebarSource).toContain("inline-flex h-8 w-8 shrink-0 items-center justify-center");
     expect(editorSource).toContain("inline-flex h-10 w-10 items-center justify-center");
     expect(editorSource).toContain("Trash2 size={18}");
   });
