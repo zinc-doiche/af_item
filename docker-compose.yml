@@ -1,0 +1,21 @@
+services:
+  af-item-admin:
+    build:
+      context: .
+    image: af-item-admin:local
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${APP_PORT:-3000}:3000"
+    environment:
+      AF_PLUGINS_DIR: /app/plugins
+      NODE_ENV: production
+      NEXT_TELEMETRY_DISABLED: "1"
+    volumes:
+      - type: bind
+        source: ${HOST_PLUGINS_DIR:?Set HOST_PLUGINS_DIR to the host plugins directory}
+        target: /app/plugins
+      - type: bind
+        source: ./config
+        target: /app/config
+        read_only: true
+    user: "${APP_UID:-1001}:${APP_GID:-1001}"
