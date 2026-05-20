@@ -24,6 +24,12 @@ The compose file publishes the app only on localhost:
 
 Use the host VPN, firewall, SSH tunnel, or a localhost-facing reverse proxy to control who can reach the app. Do not change the port binding to `0.0.0.0` unless another layer restricts access.
 
+To expose the app only on a Tailscale address, set `APP_BIND_ADDR` to the host's Tailscale IP:
+
+```bash
+HOST_PLUGINS_DIR=/srv/minecraft/plugins APP_BIND_ADDR=100.x.y.z docker compose up -d
+```
+
 ## File Permissions
 
 The container runs as UID/GID `1001` by default. If the host plugin directory is owned by a different user, pass matching IDs:
